@@ -170,11 +170,17 @@ app.add_middleware(
 # Routers
 # ─────────────────────────────────────────────
 
-from routers.agent import router as agent_router
-from routers.soap  import router as soap_router
+from routers.agent   import router as agent_router
+from routers.soap    import router as soap_router
+from routers.case    import router as case_router
+from routers.history import router as history_router
+from routers.chat    import router as chat_router
 
 app.include_router(agent_router)
 app.include_router(soap_router)
+app.include_router(case_router)
+app.include_router(history_router)
+app.include_router(chat_router)
 
 
 # ─────────────────────────────────────────────

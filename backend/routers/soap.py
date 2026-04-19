@@ -38,7 +38,17 @@ async def create_soap_note(payload: SOAPRequest) -> SOAPResponse:
     All business logic is handled in `services/soap_service.py`.
     """
     try:
-        return await generate_soap_note(payload)
+        soap_res = await generate_soap_note(payload)
+        
+        # Save to DB to generate a sequence case_id
+        from db import get_postgres_pool, get_mongo_db
+        from services.case_service import save_soap_case
+        pg_pool = await get_postgres_pool()
+        mongo_db = get_mongo_db()
+        saved = await save_soap_case(payload, soap_res, pg_pool, mongo_db)
+        
+        soap_res.case_id = saved["case_id"]
+        return soap_res
 
     except EnvironmentError as exc:
         # Missing API key or misconfiguration — 503 Service Unavailable

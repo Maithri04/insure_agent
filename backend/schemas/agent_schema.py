@@ -157,6 +157,7 @@ class AgentResponse(BaseModel):
     patient_details: PatientDetails
     soap_note: SOAPNote
     insurance_approval_rate: str
+    case_id: str
 
     # Original Fields
     request_id: str
