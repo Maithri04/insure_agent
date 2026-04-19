@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────
 
 _SOAP_PROMPT = """You are a clinical physician. Convert the patient information below into a structured SOAP note.
+Write clean, accurate, and VERY concise sentences. The values MUST be simple, flat text strings (do NOT use nested JSON objects or arrays).
 
 PATIENT : {name}, {age}yo {gender}
 TPA     : {tpa}
@@ -97,11 +98,19 @@ async def _generate_soap(req: AgentRequest, steps: List[str]) -> dict:
         )
         data = json.loads(response.choices[0].message.content)
         steps.append("Step 2 ✓ SOAP note structured successfully")
+        
+        def _ensure_str(val):
+            if isinstance(val, dict):
+                return "; ".join(f"{v}" for v in val.values() if v)
+            if isinstance(val, list):
+                return "; ".join(f"{v}" for v in val if v)
+            return str(val).strip() if val else ""
+            
         return {
-            "subjective": data.get("subjective", ""),
-            "objective":  data.get("objective", ""),
-            "assessment": data.get("assessment", ""),
-            "plan":       data.get("plan", ""),
+            "subjective": _ensure_str(data.get("subjective")),
+            "objective":  _ensure_str(data.get("objective")),
+            "assessment": _ensure_str(data.get("assessment")),
+            "plan":       _ensure_str(data.get("plan")),
         }
     except Exception as e:
         logger.error("SOAP generation error: %s", e)
@@ -603,7 +612,55 @@ async def run_agent(req: AgentRequest, pg_pool, mongo_db) -> AgentResponse:
 
     steps.append(f"✅ Agent complete — {recommendation} ({approval_prob:.1%}) | {round(duration_ms)}ms")
 
-    # ── Step 20: Compose Final Response ───────────────────────────────────
+    # ── Step 20: Compose Final Response & Save Case ───────────────────────
+    from schemas.case_schema import CaseSaveRequest
+    from services.case_service import save_case
+    
+    # Save the case to Postgres to generate a strictly sequential Case ID
+    case_req = CaseSaveRequest(
+        patient_name=req.patient_name,
+        patient_age=req.patient_age,
+        patient_gender=req.patient_gender.value,
+        tpa=req.tpa,
+        disease_description=req.disease_description,
+        medications=req.medications,
+        procedure=req.procedure,
+        duration_of_symptoms=req.duration_of_symptoms,
+        prior_treatment=req.prior_treatment,
+        severity=req.severity,
+        investigations=req.investigations,
+        specialist_referral=req.specialist_referral,
+        soap_subjective=soap_note.subjective,
+        soap_objective=soap_note.objective,
+        soap_assessment=soap_note.assessment,
+        soap_plan=soap_note.plan,
+        icd_code=icd_result.code,
+        icd_description=icd_result.description,
+        procedure_code=procedure_result.code,
+        procedure_description=procedure_result.description,
+        justification_text=justification.text,
+        justification_score=justification.score,
+        missing_evidence=evidence.missing_labels,
+        evidence_score=evidence.completeness_score,
+        risk_flags=[f.model_dump() for f in risk_flags],
+        conflicts=[c.model_dump() for c in conflicts],
+        condition_type=condition_type,
+        approval_probability=approval_prob,
+        approval_recommendation=recommendation,
+        reasons=reasons,
+        suggestions=suggestions,
+    )
+    
+    try:
+        saved_case = await save_case(case_req, pg_pool, mongo_db)
+        case_id = saved_case["case_id"]
+        steps.append(f"📁 Case saved to DB with ID: {case_id} ✓")
+    except Exception as e:
+        logger.error("Failed to save case to DB: %s", e)
+        import time
+        case_id = f"HOSP-ERR-{int(time.time()*1000)}"
+        steps.append("⚠ Failed to save case to database")
+
     return AgentResponse(
         hospital_name="InsureMind General Hospital",
         hospital_details="123 Health Ave, Medical City. Phone: (555) 123-4567",
@@ -614,6 +671,7 @@ async def run_agent(req: AgentRequest, pg_pool, mongo_db) -> AgentResponse:
         ),
         soap_note=soap_note,
         insurance_approval_rate=f"{approval_prob:.0%}",
+        case_id=case_id,
         
         request_id=request_id,
         timestamp=timestamp,

@@ -32,8 +32,8 @@ DOCTOR'S RAW NOTES:
 {req.raw_notes}
 
 INSTRUCTIONS:
-1. Generate a professional, concise SOAP note using the fields below.
-2. Use formal clinical language appropriate for medical records.
+1. Generate a professional, clean, and VERY concise SOAP note.
+2. The values MUST be simple, flat text strings. Do NOT use nested JSON objects.
 3. Assign the most accurate ICD-10 diagnosis code based on the assessment.
 4. Do NOT add any commentary outside the JSON block.
 
@@ -110,7 +110,14 @@ def _parse_soap_response(raw_json: str) -> SOAPResponse:
     if missing:
         raise ValueError(f"LLM response is missing required fields: {missing}")
 
-    return SOAPResponse(**{k: str(v).strip() for k, v in data.items() if k in required_keys})
+    def _stringify(v):
+        if isinstance(v, dict):
+            return "; ".join(f"{val}" for val in v.values() if val)
+        if isinstance(v, list):
+            return "; ".join(f"{val}" for val in v if val)
+        return str(v).strip()
+        
+    return SOAPResponse(**{k: _stringify(v) for k, v in data.items() if k in required_keys})
 
 
 # ---------------------------------------------------------------------------

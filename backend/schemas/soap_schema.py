@@ -44,6 +44,7 @@ class SOAPRequest(BaseModel):
 
 
 class SOAPResponse(BaseModel):
+    case_id: str = Field(default="", description="Unique case ID sequence")
     subjective: str = Field(..., description="Patient's reported symptoms and history")
     objective: str = Field(..., description="Clinical observations and examination findings")
     assessment: str = Field(..., description="Diagnosis and clinical assessment")

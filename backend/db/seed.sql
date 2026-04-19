@@ -439,3 +439,49 @@ CREATE INDEX IF NOT EXISTS idx_procedure_codes_code  ON procedure_codes (code);
 CREATE INDEX IF NOT EXISTS idx_icd_proc_mapping_icd  ON icd_procedure_mapping (icd_code);
 CREATE INDEX IF NOT EXISTS idx_conflict_rules_icd    ON conflict_rules (icd_code);
 CREATE INDEX IF NOT EXISTS idx_conflict_rules_proc   ON conflict_rules (procedure_code);
+-- ============================================================
+-- ADD TO seed.sql (append at the end)
+-- InsureMind AI — Cases Table
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS cases (
+    id                      SERIAL PRIMARY KEY,
+    case_id                 TEXT UNIQUE NOT NULL,
+    patient_name            TEXT NOT NULL,
+    patient_age             INTEGER NOT NULL,
+    patient_gender          TEXT NOT NULL,
+    tpa                     TEXT NOT NULL,
+    disease_description     TEXT,
+    medications             TEXT,
+    procedure               TEXT,
+    duration_of_symptoms    TEXT,
+    prior_treatment         TEXT,
+    severity                TEXT,
+    investigations          TEXT,
+    specialist_referral     TEXT,
+    soap_json               JSONB,
+    icd_code                TEXT,
+    icd_description         TEXT,
+    procedure_code          TEXT,
+    procedure_description   TEXT,
+    justification_text      TEXT,
+    justification_score     NUMERIC(5,3),
+    evidence_score          NUMERIC(5,3),
+    missing_evidence        JSONB,
+    risk_flags              JSONB,
+    conflicts               JSONB,
+    condition_type          TEXT,
+    approval_probability    NUMERIC(5,3),
+    approval_recommendation TEXT,
+    reasons                 JSONB,
+    suggestions             JSONB,
+    pdf_path                TEXT,
+    created_at              TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes for fast lookups
+CREATE INDEX IF NOT EXISTS idx_cases_case_id       ON cases (case_id);
+CREATE INDEX IF NOT EXISTS idx_cases_patient_name  ON cases (LOWER(patient_name));
+CREATE INDEX IF NOT EXISTS idx_cases_created_at    ON cases (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cases_tpa           ON cases (tpa);
+CREATE INDEX IF NOT EXISTS idx_cases_recommendation ON cases (approval_recommendation);
