@@ -61,6 +61,19 @@ async def get_case_by_id(case_id: str):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Case '{case_id.upper()}' not found.",
             )
+
+        # Map DB field `soap_json` to API field `soap` (required by CaseResponse model)
+        if not case.get("soap") and case.get("soap_json"):
+            soap_val = case.get("soap_json")
+            if isinstance(soap_val, str):
+                try:
+                    import json as _json
+                    soap_val = _json.loads(soap_val)
+                except Exception:
+                    soap_val = None
+            if isinstance(soap_val, dict):
+                case["soap"] = soap_val
+
         return case
 
     except HTTPException:
@@ -69,4 +82,4 @@ async def get_case_by_id(case_id: str):
         logger.exception("GET /case/%s failed", case_id)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
 
-
+

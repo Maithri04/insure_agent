@@ -1,45 +1,82 @@
-// Base URL for the backend API
-// Adjust this to match your backend port/host
-const API_BASE_URL = 'http://localhost:8000/api';
+import axios from "axios";
 
-/**
- * Calls the backend API to generate a SOAP report based on patient data
- * @param {Object} patientData - The data collected from the form
- * @returns {Promise<Object>} - The generated SOAP report
- */
-export const generateSOAP = async (patientData) => {
-  try {
-    // In a real application, you would connect to the backend here:
-    /*
-    const response = await fetch(`${API_BASE_URL}/generate-soap`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(patientData),
+const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
+const client = axios.create({
+  baseURL: BASE_URL,
+  timeout: 120000,
+});
+
+function parseError(err) {
+  const status = err?.response?.status;
+  const data = err?.response?.data;
+
+  // FastAPI 422 validation errors: { detail: [{ loc: [...], msg: "..." }, ...] }
+  if (status === 422 && data?.detail && Array.isArray(data.detail)) {
+    const lines = data.detail.map((item) => {
+      const loc = Array.isArray(item?.loc) ? item.loc.filter(Boolean).join(".") : "field";
+      return `${loc}: ${item?.msg || "Validation error"}`;
     });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    return await response.json();
-    */
-
-    // For now, we simulate the backend delay and return mock data
-    // This allows the frontend to work even if backend is not running
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          subjective: `Patient ${patientData.patient_name}, a ${patientData.patient_age}-year-old ${patientData.patient_gender}, presented with the following notes:\n${patientData.raw_notes}`,
-          objective: `Vitals are stable. Patient appears in mild distress. Previous medications include:\n${patientData.medications}`,
-          assessment: `Based on the subjective and objective findings, the primary assessment indicates a condition requiring further evaluation and potential pre-authorization for treatment.`,
-          plan: `1. Continue current medications.\n2. Schedule follow-up in 2 weeks.\n3. Request pre-authorization for recommended procedure.`
-        });
-      }, 1500);
-    });
-  } catch (error) {
-    console.error('Error in API call:', error);
-    throw error;
+    return new Error(lines.join(", "));
   }
-};
+
+  const detail = data?.detail || data?.message;
+  if (typeof detail === "string" && detail.trim()) return new Error(detail);
+  return new Error(err?.message || "Request failed");
+}
+
+export async function generateSOAP(payload) {
+  try {
+    const { data } = await client.post("/soap", payload);
+    return data;
+  } catch (err) {
+    throw parseError(err);
+  }
+}
+
+export async function runAgent(payload) {
+  try {
+    const { data } = await client.post("/agent-run", payload);
+    return data;
+  } catch (err) {
+    throw parseError(err);
+  }
+}
+
+export async function getCaseById(caseId) {
+  try {
+    const { data } = await client.get(`/case/${encodeURIComponent(caseId)}`);
+    return data;
+  } catch (err) {
+    throw parseError(err);
+  }
+}
+
+export async function getHistory() {
+  try {
+    const { data } = await client.get("/history");
+    return data;
+  } catch (err) {
+    throw parseError(err);
+  }
+}
+
+export async function downloadPDF(caseId) {
+  try {
+    const res = await client.get(`/history/${encodeURIComponent(caseId)}`, {
+      responseType: "blob",
+    });
+    return res.data;
+  } catch (err) {
+    throw parseError(err);
+  }
+}
+
+export async function chat(payload) {
+  try {
+    const { data } = await client.post("/chat", payload);
+    return data;
+  } catch (err) {
+    throw parseError(err);
+  }
+}

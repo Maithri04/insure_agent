@@ -42,6 +42,16 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 
 @router.get(
+    "",
+    summary="List case history (latest first)",
+    description="Returns a paginated list of cases for the History screen.",
+)
+async def list_history(limit: int = 50, skip: int = 0, search: str | None = None):
+    pool = await _get_pg()
+    from services.case_service import get_case_history
+    return await get_case_history(pool=pool, limit=limit, skip=skip, search=search)
+
+@router.get(
     "/{case_id}",
     summary="Download PDF report for a case by case ID",
     description="""

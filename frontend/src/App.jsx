@@ -1,40 +1,36 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React from "react";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import Layout from "./components/Layout";
+import { AppStateProvider } from "./context/AppStateContext";
 
-// Layout
-import Layout from './layout/Layout';
+import AgentForm from "./pages/AgentForm";
+import AgentResult from "./pages/AgentResult";
+import CaseReport from "./pages/CaseReport";
+import Chatbot from "./pages/Chatbot";
+import GetReport from "./pages/GetReport";
+import History from "./pages/History";
+import SoapForm from "./pages/SoapForm";
+import SoapReport from "./pages/SoapReport";
 
-// Pages
-import SplashScreen from './pages/SplashScreen';
-import LoginPage from './pages/LoginPage';
-import FormPage from './pages/FormPage';
-import SOAPPage from './pages/SOAPPage';
-
-// New Agent Pages
-import AgentFormPage from './agent/pages/AgentFormPage';
-import AgentResultPage from './agent/pages/AgentResultPage';
-
-function App() {
+export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<SplashScreen />} />
-        <Route path="/login" element={<LoginPage />} />
-        
-        {/* Protected routes wrapped in Layout */}
-        <Route element={<Layout />}>
-          <Route path="/home" element={<div className="p-8 text-2xl font-bold">Dashboard Home</div>} />
-          <Route path="/form" element={<FormPage />} />
-          <Route path="/soap" element={<SOAPPage />} />
-          <Route path="/agent" element={<AgentFormPage />} />
-          <Route path="/agent-result" element={<AgentResultPage />} />
-        </Route>
-        
-        {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <AppStateProvider>
+      <Router>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Navigate to="/soap" replace />} />
+            <Route path="/soap" element={<SoapForm />} />
+            <Route path="/soap-report" element={<SoapReport />} />
+            <Route path="/agent" element={<AgentForm />} />
+            <Route path="/agent-result" element={<AgentResult />} />
+            <Route path="/chat" element={<Chatbot />} />
+            <Route path="/get" element={<GetReport />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/report" element={<CaseReport />} />
+            <Route path="*" element={<Navigate to="/soap" replace />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </AppStateProvider>
   );
 }
-
-export default App;

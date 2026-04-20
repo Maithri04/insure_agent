@@ -241,11 +241,16 @@ async def generate_pdf(case_data: dict) -> str:
 
     # ── 2. Approval Badge ────────────────────────────────────────────────
     recommendation  = case_data.get("approval_recommendation", "NEEDS REVIEW")
-    probability     = case_data.get("approval_probability", 0.0)
+    probability_raw = case_data.get("approval_probability", None)
+    try:
+        probability = float(probability_raw) if probability_raw is not None else None
+    except Exception:
+        probability = None
     badge_color     = _get_recommendation_color(recommendation)
 
+    prob_text = "N/A" if probability is None else f"{probability:.1%}"
     badge_para = Paragraph(
-        f"{recommendation}  —  {probability:.1%}",
+        f"{recommendation}  —  {prob_text}",
         styles["ApprovalLabel"],
     )
     badge_table = Table([[badge_para]], colWidths=["100%"])
@@ -317,7 +322,11 @@ async def generate_pdf(case_data: dict) -> str:
     story.append(_section_header("CLINICAL EVIDENCE", styles))
     story.append(Spacer(1, 4))
 
-    evidence_score   = case_data.get("evidence_score", 0.0)
+    evidence_score_raw = case_data.get("evidence_score", None)
+    try:
+        evidence_score = float(evidence_score_raw) if evidence_score_raw is not None else None
+    except Exception:
+        evidence_score = None
     missing_evidence = case_data.get("missing_evidence") or []
     if isinstance(missing_evidence, str):
         import json as _json
@@ -328,7 +337,7 @@ async def generate_pdf(case_data: dict) -> str:
 
     story.append(_field_row(
         "Evidence Completeness",
-        f"{float(evidence_score):.0%} complete",
+        ("N/A" if evidence_score is None else f"{evidence_score:.0%} complete"),
         styles,
     ))
 
@@ -355,8 +364,12 @@ async def generate_pdf(case_data: dict) -> str:
     story.append(_section_header("CLINICAL JUSTIFICATION", styles))
     story.append(Spacer(1, 4))
 
-    just_score = case_data.get("justification_score", 0.0)
-    story.append(_field_row("Justification Score", f"{float(just_score):.2f} / 1.00", styles))
+    just_score_raw = case_data.get("justification_score", None)
+    try:
+        just_score = float(just_score_raw) if just_score_raw is not None else None
+    except Exception:
+        just_score = None
+    story.append(_field_row("Justification Score", ("N/A" if just_score is None else f"{just_score:.2f} / 1.00"), styles))
 
     just_text = case_data.get("justification_text", "")
     if just_text:

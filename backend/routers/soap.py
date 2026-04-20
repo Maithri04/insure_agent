@@ -48,6 +48,20 @@ async def create_soap_note(payload: SOAPRequest) -> SOAPResponse:
         saved = await save_soap_case(payload, soap_res, pg_pool, mongo_db)
         
         soap_res.case_id = saved["case_id"]
+
+        # Auto-generate PDF for history download
+        try:
+            from services.case_service import get_case_by_id, update_pdf_path
+            from services.pdf_service import generate_pdf
+            case = await get_case_by_id(soap_res.case_id, pg_pool)
+            if case:
+                pdf_path = await generate_pdf(case)
+                await update_pdf_path(soap_res.case_id, pdf_path, pg_pool, mongo_db)
+                logger.info("SOAP PDF generated for %s", soap_res.case_id)
+        except Exception as pdf_exc:
+            # Non-fatal: case is saved; PDF can still be generated on-demand via /history/{case_id}
+            logger.warning("SOAP PDF auto-generation failed for %s: %s", soap_res.case_id, pdf_exc)
+
         return soap_res
 
     except EnvironmentError as exc:

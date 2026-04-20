@@ -312,7 +312,28 @@ def _calculate_approval_probability(
         - conflict_penalty
         - risk_penalty
     )
+
+    # Hard-deny: any high-severity deny conflict floors the probability
+    has_hard_deny = any(
+        (c.get("action") == "deny") and (c.get("severity") == "high")
+        for c in raw_conflicts
+    )
+    if has_hard_deny:
+        raw_score = min(raw_score, 0.12)
+        steps.append("Step 10 ⚠ Hard deny conflict detected — probability floored at ≤12%")
+
     probability = round(max(0.04, min(0.98, raw_score)), 3)
+
+    # UX rule requested: make serious higher (~80%) and minor lower (~60%)
+    # - serious/critical: guarantee a high approval band unless hard-denied
+    # - minor: cap the approval band to around 60%
+    if not has_hard_deny:
+        if condition_type in ("serious", "critical") and probability < 0.80:
+            steps.append("Step 10 ➜ Policy adjustment: serious/critical condition → minimum 80% approval")
+            probability = 0.80
+        elif condition_type == "minor" and probability > 0.60:
+            steps.append("Step 10 ➜ Policy adjustment: minor condition → capped at 60% approval")
+            probability = 0.60
 
     # Recommendation label
     if probability >= 0.80:
@@ -655,6 +676,19 @@ async def run_agent(req: AgentRequest, pg_pool, mongo_db) -> AgentResponse:
         saved_case = await save_case(case_req, pg_pool, mongo_db)
         case_id = saved_case["case_id"]
         steps.append(f"📁 Case saved to DB with ID: {case_id} ✓")
+
+        # Auto-generate PDF so History always has a ready download
+        try:
+            from services.case_service import get_case_by_id, update_pdf_path
+            from services.pdf_service import generate_pdf
+            case = await get_case_by_id(case_id, pg_pool)
+            if case:
+                pdf_path = await generate_pdf(case)
+                await update_pdf_path(case_id, pdf_path, pg_pool, mongo_db)
+                steps.append("📄 PDF generated & stored for History download ✓")
+        except Exception as pdf_exc:
+            steps.append("⚠ PDF auto-generation failed (will generate on download)")
+            logger.warning("PDF auto-generation failed for %s: %s", case_id, pdf_exc)
     except Exception as e:
         logger.error("Failed to save case to DB: %s", e)
         import time
