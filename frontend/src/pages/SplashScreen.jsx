@@ -13,7 +13,7 @@ const SplashScreen = () => {
   }, [navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-blue-600">
+    <div className="flex items-center justify-center min-h-screen bg-blue-100">
       <h1 className="text-white text-5xl md:text-7xl font-bold tracking-wider animate-pulse">
         Insure AI
       </h1>

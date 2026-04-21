@@ -7,6 +7,7 @@ export { default as SectionTitle }        from "./SectionTitle";
 export { default as Layout }              from "./Layout";
 export { default as Sidebar }             from "./Sidebar";
 export { default as AgentStepsPanel }     from "./AgentStepsPanel";
+export { default as FlashCard }           from "./FlashCard";
 export { default as MissingEvidencePanel } from "./MissingEvidencePanel";
 export { default as RiskBadge }           from "./RiskBadge";
 export { default as SOAPSection }         from "./SOAPSection";

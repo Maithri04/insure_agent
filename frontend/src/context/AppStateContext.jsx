@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const AppStateContext = createContext(null);
 
@@ -8,6 +8,23 @@ export function AppStateProvider({ children }) {
   const [agentResult, setAgentResult] = useState(null);
   const [caseId, setCaseId] = useState("");
   const [patientMeta, setPatientMeta] = useState(null);
+  const [doctor, setDoctor] = useState(() => {
+    try {
+      const raw = localStorage.getItem("doctor");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (doctor) localStorage.setItem("doctor", JSON.stringify(doctor));
+      else localStorage.removeItem("doctor");
+    } catch {
+      // Ignore localStorage write errors.
+    }
+  }, [doctor]);
 
   const value = useMemo(
     () => ({
@@ -19,8 +36,10 @@ export function AppStateProvider({ children }) {
       setCaseId,
       patientMeta,
       setPatientMeta,
+      doctor,
+      setDoctor,
     }),
-    [soapData, agentResult, caseId, patientMeta],
+    [soapData, agentResult, caseId, patientMeta, doctor],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
