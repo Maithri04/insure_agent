@@ -1,4 +1,4 @@
-# 🏥 InsureMind AI  
+# 🏥 Insur Agent  
 AI-powered healthcare insurance approval system for doctors.InsureMind AI helps doctors generate SOAP notes and predict insurance approval using AI.
 
 ## 🎯 Problem Statement
