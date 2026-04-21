@@ -1,3 +1,7 @@
+🎥 Demo Video
+👉 Watch the complete working demo here:
+🔗https://www.loom.com/share/c67802eeb84f4d69955d409c7257438c
+
 # 🏥 Insure Agent  
 AI-powered healthcare insurance approval system for doctors.InsureMind AI helps doctors generate SOAP notes and predict insurance approval using AI.
 
